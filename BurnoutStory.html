@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joory's Battery — An Interactive Story About Burnout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6F1EA; --card:#FFFDF9; --ink:#1F1B16; --muted:#6E655B; --line:#E6DDD1;
+  --ember:#E0533A; --amber:#E9A23B; --green:#2F8F6B; --soft:#F1E8DC;
+  --radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;line-height:1.65;font-size:17px}
+h1,h2,h3{letter-spacing:-.01em;font-family:"Fraunces",Georgia,serif;line-height:1.5}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:560px;margin:0 auto;padding:0 18px 48px}
+
+/* header battery */
+header{position:sticky;top:0;z-index:5;background:rgba(246,241,234,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hbar{max-width:560px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hbar .label{font-size:13px;color:var(--muted)}
+.batt{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.batt .shell{width:54px;height:24px;border:2.5px solid var(--ink);border-radius:6px;padding:2px;position:relative;display:flex;justify-content:flex-start}
+.batt .shell::after{content:"";position:absolute;right:-6px;top:6px;width:4px;height:8px;background:var(--ink);border-radius:0 2px 2px 0}
+.batt .fill{height:100%;border-radius:3px;background:var(--green);transition:width .9s ease, background .9s ease}
+.dots{display:flex;gap:5px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:.3s}
+.dots i.on{background:var(--ink)}
+
+/* scenes */
+.scene{animation:in .5s ease both;padding-top:26px}
+@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.when{display:inline-block;font-size:13px;color:var(--muted);background:var(--soft);border-radius:99px;padding:2px 12px;margin-bottom:10px}
+.scene h2{font-size:26px;margin-bottom:12px}
+.scene p{margin-bottom:12px}
+.prop{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:18px 0;box-shadow:0 6px 20px rgba(60,40,20,.06)}
+
+/* props */
+.notif{display:flex;gap:12px;align-items:flex-start;background:#2A2622;color:#fff;border-radius:16px;padding:12px 14px}
+.notif .ic{width:38px;height:38px;border-radius:10px;background:#3BB26B;display:grid;place-items:center;font-size:20px;flex:none}
+.notif b{display:block;font-size:14px}
+.notif small{opacity:.65;font-size:12px}
+.notif .t{font-size:15px}
+.alarm{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;border-bottom:1px dashed var(--line);font-size:15px}
+.alarm:last-child{border:0}
+.alarm span:first-child{font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.alarm .snz{color:var(--ember);font-size:13px;background:#FCE7E1;border-radius:99px;padding:1px 10px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);font-size:15px}
+.row:last-child{border:0}
+.pill{font-size:12px;border-radius:99px;padding:1px 9px;background:#FCE7E1;color:var(--ember);font-weight:700}
+.code{direction:ltr;text-align:left;background:#1E1E24;color:#D4D4D4;border-radius:12px;padding:14px;font-family:ui-monospace,Menlo,monospace;font-size:13.5px;line-height:1.7;overflow:hidden}
+.code .k{color:#C586C0}.code .f{color:#DCDCAA}.code .c{color:#6A9955}
+.code .cur{display:inline-block;width:7px;height:15px;background:#fff;vertical-align:middle;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.timer{margin-top:10px;font-size:14px;color:var(--ember);font-weight:700;text-align:center}
+.checks li{list-style:none;padding:9px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;opacity:0;animation:in .45s ease forwards}
+.checks li:last-child{border:0}
+.checks li::before{content:"✓";width:24px;height:24px;border-radius:50%;background:#DDF0E7;color:var(--green);display:grid;place-items:center;font-weight:700;flex:none}
+
+/* concept */
+.concept{border-left:4px solid var(--ember);background:#FFF6F1;border-radius:12px;padding:14px 16px;margin:18px 0}
+.concept.good{border-color:var(--green);background:#F0F8F4}
+.concept .tag{font-size:12px;font-weight:700;color:var(--ember);letter-spacing:.2px}
+.concept.good .tag{color:var(--green)}
+.concept h3{font-size:18px;margin:2px 0 6px}
+.concept p{margin:0;font-size:15.5px;color:#3B342D}
+
+/* choices */
+.choice{margin:22px 0}
+.choice .q{font-weight:700;margin-bottom:10px}
+.opt{display:block;width:100%;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;font-size:16px;color:var(--ink);transition:.2s}
+.opt:hover{border-color:var(--ink)}
+.opt.sel{border-color:var(--ink);background:#fff}
+.opt.right{border-color:var(--green);background:#F0F8F4}
+.opt.wrong{border-color:var(--ember);background:#FFF3EF}
+.fb{font-size:15.5px;background:var(--soft);border-radius:12px;padding:12px 14px;margin-top:4px;animation:in .35s ease both}
+
+/* game */
+.game .item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.game .item p{margin:0 0 8px;font-size:15.5px}
+.game .btns{display:flex;gap:8px}
+.game .btns button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:7px;font-size:15px}
+.game .btns button.right{border-color:var(--green);background:#F0F8F4;color:var(--green);font-weight:700}
+.game .btns button.wrong{border-color:var(--ember);background:#FFF3EF;color:var(--ember)}
+.game .why{font-size:14px;color:var(--muted);margin-top:6px}
+
+/* nav */
+.nav{display:flex;gap:10px;margin-top:26px}
+.btn{flex:1;border:0;border-radius:14px;padding:14px 18px;font-size:17px;font-weight:700;background:var(--ink);color:#fff;transition:.2s}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn.ghost{flex:none;background:transparent;color:var(--ink);border:1.5px solid var(--line);font-weight:500}
+.btn.ember{background:var(--ember)}
+
+/* cover */
+.cover{text-align:center;padding-top:44px}
+.bigbatt{width:150px;height:70px;margin:10px auto 26px;border:5px solid var(--ink);border-radius:14px;padding:5px;position:relative;display:flex;justify-content:flex-start}
+.bigbatt::after{content:"";position:absolute;right:-13px;top:19px;width:8px;height:22px;background:var(--ink);border-radius:0 4px 4px 0}
+.bigbatt .fill{height:100%;border-radius:7px;transition:width 1.2s ease, background 1.2s}
+.hero{display:flex;flex-direction:column;align-items:center;margin-bottom:14px}
+.bubble{position:relative;background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:10px 16px;font-weight:500;font-size:16px;max-width:300px;margin-bottom:14px;animation:pop .5s .3s ease both}
+.bubble::after{content:"";position:absolute;bottom:-11px;left:50%;margin-left:-10px;border:10px solid transparent;border-top-color:var(--ink);border-bottom:0}
+@keyframes pop{from{opacity:0;transform:scale(.8) translateY(8px)}to{opacity:1;transform:none}}
+.joory{width:180px;height:auto;animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-5px)}}
+.cover h1{font-size:38px;margin-bottom:4px}
+.cover .sub{color:var(--muted);margin-bottom:22px}
+.def{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-align:left;margin:18px 0}
+.def b{color:var(--ember)}
+.meta{font-size:13.5px;color:var(--muted);margin-top:10px}
+
+/* quiz */
+.qitem{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.qitem p{margin:0 0 10px;font-weight:500}
+.qitem .scale{display:flex;gap:6px}
+.qitem .scale button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:8px 4px;font-size:14.5px;color:var(--ink);transition:.15s}
+.qitem .scale button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.qcount{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+
+/* result */
+.res-head{text-align:center}
+.res-head h2{font-size:28px}
+.dim{margin:12px 0}
+.dim .top{display:flex;justify-content:space-between;font-size:15px;margin-bottom:4px}
+.dim .bar{height:10px;background:var(--soft);border-radius:99px;overflow:hidden}
+.dim .bar i{display:block;height:100%;border-radius:99px;transition:width 1s ease}
+.tips h3{font-size:18px;margin:22px 0 8px}
+.tips ul{padding-left:0}
+.tips li{list-style:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px;font-size:15.5px}
+.tips li small{display:block;color:var(--muted);font-size:13px}
+.note{font-size:13.5px;color:var(--muted);background:var(--soft);border-radius:12px;padding:12px 14px;margin-top:20px}
+footer{text-align:center;font-size:12.5px;color:var(--muted);padding:10px 18px 30px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hbar">
+    <div class="dots" id="dots"></div>
+    <div class="batt"><span id="pct">100%</span><div class="shell"><div class="fill" id="fill" style="width:100%"></div></div></div>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+<footer>An awareness project · Assignment 4: Occupational Burnout</footer>
+
+<script>
+const color = p => p > 60 ? 'var(--green)' : p > 30 ? 'var(--amber)' : 'var(--ember)';
+
+function setBattery(p){
+  document.getElementById('fill').style.width = p + '%';
+  document.getElementById('fill').style.background = color(p);
+  document.getElementById('pct').textContent = p + '%';
+}
+
+/* ---------- STORY ---------- */
+const scenes = [
+{
+  when:'Month 1', batt:95, title:'The start: passion with no limits',
+  text:`<p>Joory is a 22-year-old game developer who just joined a gaming company in Jeddah. She's so excited that she arrives before everyone and leaves last.</p>
+  <p>It's 11:04 PM. She's having dinner with her family when her phone buzzes:</p>`,
+  prop:`<div class="notif"><div class="ic">💬</div><div><b>Eng. Khalid (Manager) <small>· 11:04 PM</small></b><div class="t">Just a quick question.. is the new level ready? 🙏</div></div></div>`,
+  choice:{ q:'If you were Joory, what would you do?', opts:[
+    {t:'Reply right away and open the laptop', fb:'That is exactly what Joory did. Once is fine… but when it becomes normal, the brain never switches off. Let\'s see what happens a few months later.'},
+    {t:'Reply in the morning, during work hours', fb:'A healthy choice 👌 But Joory didn\'t make it. She was afraid of looking uncommitted, and that\'s where the story begins.'}
+  ]},
+  concept:{tag:'Note', title:'Burnout doesn\'t start with laziness… it starts with passion', body:'Many people who burn out were the most driven ones. Passion without boundaries drains the battery faster than it can recharge.'}
+},
+{
+  when:'Month 4', batt:60, title:'The battery won\'t charge anymore',
+  text:`<p>The alarm rings… snooze. It rings again… snooze. Joory gets up feeling like she never slept. Her third coffee before noon.</p>
+  <p>And every Saturday night, a strange heaviness sets in… because tomorrow is Sunday.</p>
+  <p>The weekend has become a broken charger: she charges for two full days and wakes up on Sunday at 40%.</p>`,
+  prop:`<div class="alarm"><span>6:30</span><span class="snz">Snooze</span></div>
+        <div class="alarm"><span>6:39</span><span class="snz">Snooze</span></div>
+        <div class="alarm"><span>6:48</span><span class="snz">Snooze</span></div>
+        <div class="alarm"><span>6:57</span><span style="font-size:13px;color:var(--muted)">Up… and late</span></div>`,
+  concept:{tag:'Sign 1 of 3', title:'Exhaustion', body:'Physical and mental tiredness that sleep and short breaks don\'t fix. Normal tiredness goes away with rest; exhaustion is back before your day even starts.'}
+},
+{
+  when:'Month 6', batt:40, title:'"What\'s the point?"',
+  text:`<p>A kickoff meeting for a new project. Everyone is discussing, and Joory thinks: "What's the point? They'll change it next week anyway."</p>
+  <p>She muted the team group. Her replies shrank to "OK 👍". Her mom called three times this week… "I'll call you later, Mom."</p>`,
+  prop:`<div class="row"><span>👥 Game Team group 🔕</span><span class="pill">47</span></div>
+        <div class="row"><span>📞 Mom — missed call</span><span class="pill">3</span></div>
+        <div class="row"><span>🍽️ Family dinner</span><span style="font-size:13px;color:var(--muted)">Declined</span></div>`,
+  concept:{tag:'Sign 2 of 3', title:'Cynicism & detachment', body:'A growing distance between you, your work, and your people: sarcasm, indifference, "just leave me alone." It\'s the brain\'s way of protecting itself from being drained… but the price is high.'}
+},
+{
+  when:'Month 8', batt:20, title:'"Maybe I\'m just not good at this?"',
+  text:`<p>A bug she used to fix in ten minutes took her a whole day. She reads the same line three times and it doesn't sink in.</p>
+  <p>In her monthly review she heard the word "delays," and walked out thinking: "Maybe I'm not cut out for this field."</p>`,
+  prop:`<div class="code"><span class="c">// TODO: fix login crash</span><br><span class="k">function</span> <span class="f">login</span>(user) {<br>&nbsp;&nbsp;<span class="cur"></span><br>}</div><div class="timer">⏱ 7 hours on the same line</div>`,
+  concept:{tag:'Sign 3 of 3', title:'Reduced accomplishment', body:'Feeling you achieve nothing and add no value, even though your abilities haven\'t changed. The most dangerous part: it convinces you that you are the problem.'},
+  choice:{ q:'Her manager noticed Joory has become slow. What do you think the real problem is?', check:true, opts:[
+    {t:'Joory has become lazy and careless', ok:false, fb:'That judges the symptom, not the problem. Chapter 3: slow work can be just a symptom of a deeper problem, like low morale or pressure.'},
+    {t:'She needs a skills training course', ok:false, fb:'That jumps to a solution before defining the problem, a common mistake Chapter 3 warns about. Her skills never dropped.'},
+    {t:'Chronic stress that was never managed, and it led to burnout', ok:true, fb:'Exactly ✔ Slowness is the symptom. The real problem is 8 months with no boundaries, no rest, and no recognition. Define the problem right, and you\'re halfway to the solution.'}
+  ]}
+},
+{
+  when:'Turning point', batt:25, title:'Layan noticed',
+  text:`<p>During a break, her colleague Layan said: "Joory… you haven't been yourself lately. Is something wrong?"</p>
+  <p>The first time anyone noticed. Before we continue, try to tell the difference:</p>`,
+  game:[
+    {t:'You were tired after a project-deadline week, slept over the weekend, and came back energized', a:0, why:'Normal tiredness. Rest fixed it.'},
+    {t:'For three months you\'ve woken up tired, even after a vacation', a:1, why:'Ongoing tiredness that rest doesn\'t fix, a sign of exhaustion.'},
+    {t:'You were annoyed for one day by a boring task', a:0, why:'A passing, normal feeling.'},
+    {t:'Nothing at work matters to you anymore, not even the results', a:1, why:'Ongoing indifference, a sign of cynicism.'}
+  ],
+  concept:{good:true, tag:'Early detection', title:'The earlier you notice, the faster the recovery', body:'Burnout doesn\'t arrive suddenly; it slides down step by step. Layan is an example of the "positive energizers" in Chapter 4: sometimes one honest question from a colleague changes everything.'}
+},
+{
+  when:'Month 9', batt:45, title:'Small steps, not a giant leap',
+  text:`<p>Joory didn't quit, and she didn't disappear. She sat with herself and applied what she'd learned: she defined the problem ("What exactly is draining me?"), came up with alternatives, and started with the easiest one.</p>`,
+  prop:`<ul class="checks">
+    <li style="animation-delay:.1s">Phone on "Do Not Disturb" after 8 PM</li>
+    <li style="animation-delay:.4s">Lunch away from the desk, even for 20 minutes</li>
+    <li style="animation-delay:.7s">A walk after work</li>
+    <li style="animation-delay:1s">Calling her mom every day again</li>
+    <li style="animation-delay:1.3s">An honest talk with her manager about workload</li></ul>`,
+  concept:{good:true, tag:'From Chapter 4', title:'The small-wins strategy', body:'A small, easy change. You succeed at it, so you\'re motivated for the next one. You don\'t need to change your whole life in a day.'}
+},
+{
+  when:'Month 11', batt:75, title:'Joory today',
+  text:`<p>She's not back to 100%… and she doesn't need to be. She now knows her battery's warning signs, and when it drops, she stops early.</p>
+  <p>And in the last meeting, she was the one who asked a new colleague: "Are you okay?" 😄</p>
+  <p><b>Now… it's your turn.</b></p>`,
+  last:true
+}
+];
+
+/* ---------- QUIZ ---------- */
+const quiz = [
+  {d:'E', t:'I wake up tired even when I\'ve slept enough'},
+  {d:'E', t:'I feel a heaviness before the work or study week starts'},
+  {d:'E', t:'A short break isn\'t enough to get my energy back'},
+  {d:'C', t:'I don\'t care about the results of my work like I used to'},
+  {d:'C', t:'Colleagues and messages irritate me quickly; I just want to be left alone'},
+  {d:'C', t:'I often think: "What\'s the point?"'},
+  {d:'P', t:'Tasks that used to be easy now take me longer'},
+  {d:'P', t:'I feel I achieve nothing meaningful no matter how hard I work'},
+  {d:'P', t:'I doubt that I\'m right for my job or major'}
+];
+const dims = {
+  E:{name:'Exhaustion', tips:[
+    ['Set a stop time for work, and turn off notifications after it','Like Joory\'s "Do Not Disturb" after 8 PM'],
+    ['Consistent sleep comes first','Same bedtime and wake-up time, even on weekends'],
+    ['Take short breaks during the day','Chapter 3: the more intense your work, the more you need complete breaks']
+  ]},
+  C:{name:'Cynicism & detachment', tips:[
+    ['Reconnect with the meaning','What first excited you about this work? Write it down and keep it in sight'],
+    ['Stay close to people who give you energy','And avoid the "black holes" who drain it (Chapter 3)'],
+    ['Don\'t isolate yourself','Talk to someone you trust, even a short call']
+  ]},
+  P:{name:'Reduced accomplishment', tips:[
+    ['Break big tasks into small pieces','Every piece you finish counts as a win: the small-wins strategy'],
+    ['Write down 3 things you got done at the end of each day','So you see your real progress instead of relying on how you feel'],
+    ['Ask for clear feedback','From your manager or instructor, instead of guessing how you\'re doing']
+  ]}
+};
+const levels = [
+  {max:4,  h:'Your battery is fine 🟢', p:'No worrying signs. Keep going, and protect your boundaries before you need them.'},
+  {max:8,  h:'Heads up 🟡', p:'Some mild drain. This is the best time to start small steps, before it grows.'},
+  {max:13, h:'Clear warning signs 🟠', p:'Your body and mind are sending signals. Start with one step this week, and talk to someone you trust.'},
+  {max:18, h:'Battery almost empty 🔴', p:'Don\'t carry this alone. Talk to your manager or a mental-health professional. Asking for help is strength, not weakness.'}
+];
+
+/* ---------- RENDER ---------- */
+const app = document.getElementById('app');
+const dotsEl = document.getElementById('dots');
+let idx = -1, answers = {};
+
+function dots(){
+  dotsEl.innerHTML = scenes.map((_,i)=>`<i class="${i<=idx?'on':''}"></i>`).join('') + `<i class="${idx>=scenes.length?'on':''}"></i>`;
+}
+function toTop(){ window.scrollTo({top:0,behavior:'smooth'}); }
+
+function cover(){
+  idx=-1; dots(); setBattery(100);
+  app.innerHTML = `<section class="cover scene">
+    <div class="hero">
+      <div class="bubble">I went through occupational burnout… and I'm here to tell you my story.</div>
+      <svg class="joory" viewBox="0 -24 200 264" aria-label="Joory, a girl with long wavy dark-brown hair holding a game controller">
+        <!-- back hair -->
+        <path fill="#4A2E1F" d="M100 4 C150 4 178 40 176 90 C174 110 186 122 177 140 C168 156 184 170 173 188 C166 200 178 208 164 214 C150 222 132 206 118 214 L82 214 C68 206 50 222 36 214 C22 208 34 200 27 188 C16 170 32 156 23 140 C14 122 26 110 24 90 C22 40 50 4 100 4 Z"/>
+        <g fill="none" stroke="#3A2317" stroke-width="2.5" stroke-linecap="round" opacity=".8">
+          <path d="M34 100 C30 120 42 132 34 150 C28 166 40 178 34 196"/><path d="M166 100 C170 120 158 132 166 150 C172 166 160 178 166 196"/>
+        </g>
+        <g fill="none" stroke="#B9835A" stroke-width="3" stroke-linecap="round" opacity=".75">
+          <path d="M28 96 C26 112 34 124 28 140"/><path d="M172 96 C174 112 166 124 172 140"/>
+          <path d="M30 160 C26 172 34 182 30 194"/><path d="M170 160 C174 172 166 182 170 194"/>
+        </g>
+        <!-- legs -->
+        <rect x="76" y="198" width="19" height="26" rx="6" fill="#2A2622"/>
+        <rect x="105" y="198" width="19" height="26" rx="6" fill="#2A2622"/>
+        <ellipse cx="84" cy="226" rx="14" ry="7" fill="#F6F1EA" stroke="#2A2622" stroke-width="2"/>
+        <ellipse cx="116" cy="226" rx="14" ry="7" fill="#F6F1EA" stroke="#2A2622" stroke-width="2"/>
+        <!-- body -->
+        <rect x="60" y="134" width="80" height="72" rx="24" fill="#E0533A"/>
+        <path d="M84 136 Q100 150 116 136" fill="none" stroke="#B8402B" stroke-width="3" stroke-linecap="round"/>
+        <!-- arms -->
+        <rect x="48" y="142" width="20" height="40" rx="10" fill="#E0533A"/>
+        <rect x="132" y="142" width="20" height="40" rx="10" fill="#E0533A"/>
+        <!-- controller + hands -->
+        <rect x="70" y="168" width="60" height="22" rx="11" fill="#2A2622"/>
+        <circle cx="84" cy="179" r="4" fill="#6E655B"/>
+        <circle cx="113" cy="175" r="3" fill="#2F8F6B"/><circle cx="121" cy="181" r="3" fill="#E9A23B"/>
+        <circle cx="64" cy="178" r="9" fill="#F7DCCB"/><circle cx="136" cy="178" r="9" fill="#F7DCCB"/>
+        <!-- neck + head -->
+        <rect x="90" y="122" width="20" height="16" rx="5" fill="#EBC4AE"/>
+        <rect x="42" y="26" width="116" height="106" rx="48" fill="#F7DCCB"/>
+        <!-- fringe curls -->
+        <path fill="#4A2E1F" d="M42 76 C42 34 70 20 100 20 C134 20 160 36 158 74 C150 58 136 48 120 46 C104 56 82 62 60 63 C52 65 46 70 42 78 Z"/>
+        <path fill="#4A2E1F" d="M46 58 C34 80 48 96 38 118 C34 130 42 140 48 148 L55 142 C50 126 57 112 53 96 C50 84 57 72 57 62 Z"/><path fill="#4A2E1F" d="M 154.0 58 C 166.0 80 152.0 96 162.0 118 C 166.0 130 158.0 140 152.0 148 L 145.0 142 C 150.0 126 143.0 112 147.0 96 C 150.0 84 143.0 72 143.0 62 Z"/>
+        <g fill="none" stroke="#B9835A" stroke-width="3" stroke-linecap="round" opacity=".8">
+          <path d="M62 36 Q90 24 122 28"/><path d="M70 52 Q92 48 112 44"/><path d="M44 84 C40 98 48 106 44 120"/><path d="M156 84 C160 98 152 106 156 120"/>
+        </g>
+        <path d="M74 30 Q92 23 108 25" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2" stroke-linecap="round"/>
+        <!-- face -->
+        <path d="M68 70 q10 -6 20 0" fill="none" stroke="#3A2317" stroke-width="3" stroke-linecap="round"/>
+        <path d="M112 70 q10 -6 20 0" fill="none" stroke="#3A2317" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="78" cy="86" rx="8" ry="10" fill="#2A1C14"/><ellipse cx="122" cy="86" rx="8" ry="10" fill="#2A1C14"/>
+        <circle cx="81" cy="82" r="3" fill="#fff"/><circle cx="125" cy="82" r="3" fill="#fff"/>
+        <ellipse cx="64" cy="104" rx="8" ry="5" fill="#F08A7A" opacity=".45"/>
+        <ellipse cx="136" cy="104" rx="8" ry="5" fill="#F08A7A" opacity=".45"/>
+        <path d="M91 106 Q100 114 109 106" fill="none" stroke="#9A4E3C" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1>Joory's Battery</h1>
+    <div class="sub">A short interactive story about occupational burnout</div>
+    <div class="def">
+      <b>Occupational burnout</b> results from <b>chronic workplace stress that has not been successfully managed</b>, according to the World Health Organization.<br>
+      It's like your phone battery: it doesn't die suddenly. It drains bit by bit… until you notice it's at 20% and you don't know when that happened.
+    </div>
+    <button class="btn ember" onclick="go(0)">Start the story</button>
+    <div class="meta">7 scenes · about 3 minutes · and at the end, you check your own battery</div>
+  </section>`;
+  setTimeout(()=>{const c=document.getElementById('cb'); if(c){c.style.width='20%';c.style.background='var(--ember)';}},600);
+}
+
+function go(i){
+  idx=i; dots(); toTop();
+  const s = scenes[i]; setBattery(s.batt);
+  const needs = !!(s.choice || s.game);
+  let h = `<section class="scene">
+    <span class="when">${s.when}</span>
+    <h2>${s.title}</h2>${s.text}`;
+  if(s.prop) h += `<div class="prop">${s.prop}</div>`;
+  if(s.concept && !s.choice?.check && !s.game) h += concept(s.concept);
+  if(s.choice) h += `<div class="choice"><div class="q">${s.choice.q}</div>
+      ${s.choice.opts.map((o,k)=>`<button class="opt" data-k="${k}">${o.t}</button>`).join('')}
+      <div id="fb"></div></div>`;
+  if(s.concept && s.choice?.check) h += `<div id="late"></div>`;
+  if(s.game) h += `<div class="game prop">${s.game.map((g,k)=>`<div class="item" data-k="${k}"><p>${g.t}</p>
+      <div class="btns"><button data-a="0">Normal tiredness</button><button data-a="1">Burnout</button></div><div class="why"></div></div>`).join('')}</div>`;
+  h += `<div class="nav">
+      <button class="btn ghost" onclick="${i===0?'cover()':'go('+(i-1)+')'}">Back</button>
+      <button class="btn ${s.last?'ember':''}" id="next" ${needs?'disabled':''} onclick="${s.last?'startQuiz()':'go('+(i+1)+')'}">${s.last?'Check your battery':'Next'}</button>
+    </div></section>`;
+  app.innerHTML = h;
+
+  if(s.choice){
+    app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+      const o = s.choice.opts[b.dataset.k];
+      app.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel','right','wrong'));
+      b.classList.add(s.choice.check ? (o.ok?'right':'wrong') : 'sel');
+      document.getElementById('fb').innerHTML = `<div class="fb">${o.fb}</div>`;
+      if(!s.choice.check || o.ok){
+        document.getElementById('next').disabled=false;
+        if(s.choice.check) document.getElementById('late').innerHTML = concept(s.concept);
+      }
+    });
+  }
+  if(s.game){
+    let done = new Set();
+    app.querySelectorAll('.game .item').forEach(it=>{
+      it.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+        const g = s.game[it.dataset.k], ok = +b.dataset.a===g.a;
+        it.querySelectorAll('button').forEach(x=>x.classList.remove('right','wrong'));
+        b.classList.add(ok?'right':'wrong');
+        it.querySelector('.why').textContent = (ok?'Correct ✔ ':'Not quite. ') + g.why;
+        if(ok) done.add(it.dataset.k);
+        if(done.size===s.game.length && !app.querySelector('.concept')){
+          document.getElementById('next').disabled=false;
+          app.querySelector('.nav').insertAdjacentHTML('beforebegin', concept(s.concept));
+        }
+      });
+    });
+  }
+}
+
+function concept(c){
+  return `<div class="concept ${c.good?'good':''}"><div class="tag">${c.tag}</div><h3>${c.title}</h3><p>${c.body}</p></div>`;
+}
+
+function startQuiz(){
+  idx=scenes.length; dots(); toTop(); answers={};
+  app.innerHTML = `<section class="scene">
+    <span class="when">Your turn</span>
+    <h2>Check your battery 🔋</h2>
+    <p>9 quick questions about <b>the past month</b>. Answer honestly. No one sees your answers but you.</p>
+    ${quiz.map((q,k)=>`<div class="qitem" data-k="${k}"><p>${k+1}. ${q.t}</p>
+      <div class="scale"><button data-v="0">Never</button><button data-v="1">Sometimes</button><button data-v="2">Often</button></div></div>`).join('')}
+    <div class="nav"><button class="btn ghost" onclick="go(${scenes.length-1})">Back</button>
+    <button class="btn ember" id="see" disabled onclick="result()">See my result</button></div>
+    <div class="qcount" id="qc">Answered 0 of 9</div>
+  </section>`;
+  app.querySelectorAll('.qitem').forEach(it=>it.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    it.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    answers[it.dataset.k] = +b.dataset.v;
+    const n = Object.keys(answers).length;
+    document.getElementById('qc').textContent = `Answered ${n} of 9`;
+    document.getElementById('see').disabled = n < quiz.length;
+  }));
+}
+
+function result(){
+  toTop();
+  const sc = {E:0,C:0,P:0}; let total=0;
+  quiz.forEach((q,k)=>{sc[q.d]+=answers[k]; total+=answers[k];});
+  const batt = Math.max(5, Math.round(100 - total/18*95));
+  setBattery(batt);
+  const lv = levels.find(l=>total<=l.max);
+  const flagged = Object.keys(sc).filter(d=>sc[d]>=3).sort((a,b)=>sc[b]-sc[a]);
+  const show = flagged.length ? flagged : [Object.keys(sc).sort((a,b)=>sc[b]-sc[a])[0]];
+
+  app.innerHTML = `<section class="scene">
+    <div class="res-head">
+      <div class="bigbatt"><div class="fill" id="rb" style="width:100%;background:var(--green)"></div></div>
+      <h2>${lv.h}</h2>
+      <p>${lv.p}</p>
+    </div>
+    <div class="prop">
+      ${Object.keys(dims).map(d=>`<div class="dim"><div class="top"><span>${dims[d].name}</span><span>${sc[d]} / 6</span></div>
+        <div class="bar"><i style="width:0;background:${color(100-sc[d]/6*100)}" data-w="${sc[d]/6*100}"></i></div></div>`).join('')}
+    </div>
+    <div class="tips">
+      ${show.map(d=>`<h3>${flagged.length?'Focus on: ':'To keep your battery healthy: '}${dims[d].name}</h3>
+        <ul>${dims[d].tips.map(t=>`<li>${t[0]}<small>${t[1]}</small></li>`).join('')}</ul>`).join('')}
+      <h3>If you're a manager or colleague 🤝</h3>
+      <ul>
+        <li>Ask "Are you okay?" and mean it<small>Like Layan: early detection starts with a question</small></li>
+        <li>Don't message after hours unless it's urgent<small>A "quick question" at 11 PM isn't quick for the person receiving it</small></li>
+        <li>Recognize effort publicly, even small wins<small>Appreciation and feedback on strengths are core to Chapter 4</small></li>
+      </ul>
+    </div>
+    <div class="note">⚠️ This is a quick awareness quiz, not a medical diagnosis. The World Health Organization classifies burnout as an "occupational phenomenon" in ICD-11, not as a medical condition. If symptoms affect your sleep or mood for a long time, see a professional.</div>
+    <div class="nav"><button class="btn ghost" onclick="startQuiz()">Retake quiz</button>
+    <button class="btn" onclick="cover()">Start over</button></div>
+  </section>`;
+  setTimeout(()=>{
+    const r=document.getElementById('rb'); r.style.width=batt+'%'; r.style.background=color(batt);
+    app.querySelectorAll('.dim i').forEach(i=>i.style.width=i.dataset.w+'%');
+  },300);
+}
+
+cover();
+</script>
+</body>
+</html>
